@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # Originally part of vpnc source code:
 # © 2005-2012 Maurice Massar, Jörg Mayer, Antonio Borneo et al.
@@ -85,6 +85,12 @@
 
 # =========== script (variable) setup ====================================
 
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+if [[ ${vpnc_debug:-} ]]; then
+	set -x
+fi
+
 PATH=/sbin:/usr/sbin:$PATH
 
 OS="`uname -s`"
@@ -107,6 +113,13 @@ DEFAULT_ROUTE_FILE=/var/run/vpnc/defaultroute.${VPNPID}
 DEFAULT_ROUTE_FILE_IPV6=/var/run/vpnc/defaultroute_ipv6.${VPNPID}
 RESOLV_CONF_BACKUP=/var/run/vpnc/resolv.conf-backup.${VPNPID}
 SCRIPTNAME=`basename $0`
+
+if [[ ${vpnc_includes:-} ]]; then
+	if [[ ${vpnc_verbose:-} ]]; then
+		echo "INFO: Sourcing '${vpnc_includes}'" >&2
+	fi
+	source "${vpnc_includes}"
+fi
 
 # some systems, eg. Darwin & FreeBSD, prune /var/run on boot
 if [ ! -d "/var/run/vpnc" ]; then
@@ -204,6 +217,14 @@ else # Generic for any OS
 	RESTORERESOLVCONF=restore_resolvconf_generic
 fi
 
+if [[ ${vpnc_debug:-} ]]; then
+	{
+		echo "reason = ${reason}"
+		echo '+vvv+++++++++++++++++++++++++++++++++++++++++++++'
+		set
+		echo '+^^^+++++++++++++++++++++++++++++++++++++++++++++'
+	} >&2
+fi
 
 # =========== script hooks =================================================
 
@@ -1156,6 +1177,8 @@ case "$reason" in
 		run_hooks connect
 		do_connect
 		run_hooks post-connect
+		printf "${INTERNAL_IP4_ADDRESS}\n"  > "/tmp/${HOSTNAME}-ip"
+		chmod 666 "/tmp/${HOSTNAME}-ip"
 		;;
 	disconnect)
 		run_hooks disconnect
@@ -1181,4 +1204,5 @@ case "$reason" in
 		;;
 esac
 
+echo -e "${SCRIPTNAME}: Done, success (${reason}) $(date +%r)"
 exit 0
