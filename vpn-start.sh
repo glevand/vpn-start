@@ -1,0 +1,294 @@
+#!/usr/bin/env bash
+
+usage() {
+	local old_xtrace
+	old_xtrace="$(shopt -po xtrace || :)"
+	set +o xtrace
+
+	{
+		echo "${script_name} - Start VPN."
+		echo "Usage: ${script_name} [flags]"
+		echo "Option flags:"
+		echo "  -t --type     - VPN type. Default: '$(vpn_type_to_name ${vpn_type})'."
+		echo "  -n --no-split - Don't use split route."
+		echo "  -c --config   - Configuration file. Default: '${config_file}'."
+		echo "  -h --help     - Show this help and exit."
+		echo "  -v --verbose  - Verbose execution."
+		echo "  -g --debug    - Extra verbose execution."
+		echo "  -d --dry-run  - Dry run, don't start VPN client."
+		echo "VPN Types:"
+		local vn
+		for vn in "${vpn_names[@]}"; do
+			echo "  ${vn}"
+		done
+		echo "Info:"
+		echo "  ${script_name} - Version: @PACKAGE_VERSION@"
+		echo "  Project Home: @PACKAGE_URL@"
+	} >&2
+	eval "${old_xtrace}"
+}
+
+process_opts() {
+	local short_opts="t:nc:hvgd"
+	local long_opts="type:,no-split,config:,help,verbose,debug,dry-run"
+
+	local opts
+	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
+
+	eval set -- "${opts}"
+
+	while true ; do
+		# echo "${FUNCNAME[0]}: (${#}) '${*}'"
+		case "${1}" in
+		-t | --type)
+			vpn_type="${2}"
+			shift 2
+			;;
+		-n | --no-split)
+			use_split_route=''
+			shift
+			;;
+		-c | --config)
+			config_file="${2}"
+			shift 2
+			;;
+		-h | --help)
+			usage=1
+			shift
+			;;
+		-v | --verbose)
+			verbose=1
+			shift
+			;;
+		-g | --debug)
+			verbose=1
+			debug=1
+			keep_vpnc_includes=1
+			set -x
+			shift
+			;;
+		-d | --dry-run)
+			dry_run=1
+			shift
+			;;
+		--)
+			shift
+			extra_args="${*}"
+			break
+			;;
+		*)
+			echo "${script_name}: ERROR: Internal opts: '${*}'" >&2
+			exit 1
+			;;
+		esac
+	done
+}
+
+sec_to_min() {
+	local sec=${1}
+
+	local min
+	local frac_10
+
+	min=$(( sec / 60 ))
+	frac_10=$(( (sec - min * 60) * 10 / 60 ))
+
+	echo "${min}.${frac_10}"
+}
+
+sec_to_hour() {
+	local sec=${1}
+
+	local hour
+	local frac_10
+	local frac_100
+
+	hour=$(( sec / 3600 ))
+	frac_10=$(( (sec - hour * 3600) * 10 / 3600 ))
+	frac_100=$(( (sec - hour * 3600) * 100 / 3600 ))
+
+	if (( frac_10 != 0 )); then
+		frac_10=''
+	fi
+
+	echo "${hour}.${frac_10}${frac_100}"
+}
+
+on_exit() {
+	local result=${1}
+
+	if [[ -e "${vpnc_includes:-}" ]]; then
+		if [[ ${keep_vpnc_includes:-} ]]; then
+			echo "${script_name}: INFO: vpnc includes preserved: '${vpnc_includes}'" >&2
+		else
+			rm -rf "${vpnc_includes:?}"
+		fi
+	fi
+
+	local sec="${SECONDS}"
+
+	set +x
+	echo "${script_name}: Done: ${result}, $(sec_to_min "${sec}") min ($(sec_to_hour "${sec}") hours)." >&2
+}
+
+on_err() {
+	local f_name=${1}
+	local line_no=${2}
+	local err_no=${3}
+
+	{
+		echo "${script_name}: ERROR: function=${f_name}, line=${line_no}, result=${err_no}"
+	} >&2
+
+	exit "${err_no}"
+}
+
+vpn_type_to_name() {
+	local type=${1}
+
+	echo "${vpn_names[$(( vpn_type - 1 )) ]%% (*}"
+}
+
+#===============================================================================
+export PS4='\[\e[0;33m\]+ ${BASH_SOURCE##*/}:${LINENO}:(${FUNCNAME[0]:-main}):\[\e[0m\] '
+
+script_name="${0##*/}"
+
+SECONDS=0
+
+real_source="$(realpath "${BASH_SOURCE}")"
+SCRIPT_TOP="$(realpath "${SCRIPT_TOP:-${real_source%/*}}")"
+
+trap "on_exit 'Failed'" EXIT
+trap 'on_err ${FUNCNAME[0]:-main} ${LINENO} ${?}' ERR
+trap 'on_err SIGUSR1 ? 3' SIGUSR1
+
+set -eE
+set -o pipefail
+set -o nounset
+
+vpn_type_default='2'
+vpn_type="${vpn_type_default}"
+use_split_route='1'
+config_file_default="${HOME}/vpn-start.conf"
+config_file="${config_file_default}"
+usage=''
+verbose=''
+debug=''
+dry_run=''
+
+declare -a vpn_names
+declare -a vpn_routes
+
+process_opts "${@}"
+
+if [[ "${config_file}" != "${config_file_default}" ]]; then
+	if [[ ! -f "${config_file}" ]]; then
+		echo "${script_name}: ERROR: Config file not found: '${config_file}'" >&2
+		exit 1
+	fi
+fi
+
+set_vpn_variables () {
+	echo "${script_name}: ERROR: No config file." >&2
+	usage
+	exit 1
+}
+
+if [[ -f "${config_file}" ]]; then
+	source "${config_file}"
+fi
+
+src_vpn_names=(
+	'1: Add names to config file.'
+)
+
+src_vpn_routes=(
+	'Add routes to config file.'
+)
+
+set_vpn_variables "${vpn_type}"
+
+vpn_names=("${vpn_names[@]:-${src_vpn_names[@]}}")
+vpn_routes=("${vpn_routes[@]:-${src_vpn_routes[@]}}")
+
+vpn_script="${vpn_script:-${SCRIPT_TOP}/vpnc-script}"
+
+if [[ ${verbose} ]]; then
+	echo "vpn_type = '${vpn_type}'"
+
+	for (( i = 0; i < ${#vpn_names[@]}; i++ )); do
+		echo "vpn_names: ${vpn_names[i]}"
+	done
+
+	for (( i = 0; i < ${#vpn_routes[@]}; i++ )); do
+		echo "vpn_routes ${i}: ${vpn_routes[i]}"
+	done
+fi
+
+if (( vpn_type < 1 || vpn_type > ${#vpn_names[@]} )); then
+	echo "${script_name}: ERROR: Bad VPN type: '${vpn_type}'" >&2
+	vpn_type="${vpn_type_default}"
+fi
+
+if [[ ${usage} ]]; then
+	usage
+	trap - EXIT
+	exit 0
+fi
+
+if [[ ${extra_args} ]]; then
+	set +o xtrace
+	echo "${script_name}: ERROR: Got extra args: '${extra_args}'" >&2
+	usage
+	exit 1
+fi
+
+if [[ ! -f "${vpn_script}" ]]; then
+	{
+		{
+			echo "${script_name}: ERROR: Not found: '${vpn_script}'."
+			echo "${script_name}: INFO: wget https://gitlab.com/openconnect/vpnc-scripts/raw/master/vpnc-script"
+		} >&2
+		exit 1
+	} >&2
+fi
+
+echo "${script_name}: Connecting to '${vpn_url}' ($(vpn_type_to_name ${vpn_type}))..." >&2
+
+if [[ ${use_split_route} ]]; then
+	vpnc_includes="$(mktemp --tmpdir "${script_name}.vpnc_includes.XXXX")"
+
+	export vpnc_includes
+
+	printf 'CISCO_SPLIT_INC=%q\n' "${#vpn_routes[@]}" > "${vpnc_includes}"
+
+	for (( i = 0; i < ${#vpn_routes[@]}; i++ )); do
+		printf 'CISCO_SPLIT_INC_%q_ADDR=%q\n' "${i}" "${vpn_routes[i]%%/*}" >> "${vpnc_includes}"
+		printf 'CISCO_SPLIT_INC_%q_MASKLEN=%q\n' "${i}" "${vpn_routes[i]##*/}" >> "${vpnc_includes}"
+	done
+
+	if [[ ${debug} ]]; then
+		export vpnc_debug=1
+	fi
+
+	if [[ ${verbose} ]]; then
+		export vpnc_verbose=1
+		{
+			echo "INFO: vpnc routes:"
+			while read -r line_in; do
+				echo "  ${line_in}"
+			done < "${vpnc_includes}"
+		} >&2
+	fi
+fi
+
+if [[ ${dry_run} ]]; then
+	echo "${script_name}: Dry run, not connecting." >&2
+else
+	sudo true
+	sudo --preserve-env="vpnc_debug,vpnc_includes,vpnc_verbose" openconnect --disable-ipv6 --script="${vpn_script}" --certificate="${vpn_cert}" --no-dtls "${vpn_url}" "${vpn_proto}"
+fi
+
+trap "on_exit 'Success'" EXIT
+exit 0
