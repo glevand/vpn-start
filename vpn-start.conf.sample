@@ -1,0 +1,86 @@
+# Sample vpn-start configuration file.
+# Home: https://github.com/glevand/vpn-start
+#
+
+# vpn_cert: The VPN SSL client certificate.
+#
+
+vpn_cert="${HOME}/vpn-cert.p12"
+
+# vpn_type: The default VPN server.
+#
+
+vpn_type="${vpn_type:-2}"
+
+# conf_vpn_names: Friendly names for the known VPN servers.
+#
+
+conf_vpn_names=(
+	'1: AAA'
+	'2: BBB (default)'
+	'3: CCC'
+)
+
+# conf_vpn_base_routes_<hostname>: The networks to route through the VPN for known hosts.
+#
+
+conf_vpn_base_routes_host1=(
+	'10.0.0.0/8'
+	'20.10.0.0/16'
+	'30.30.30.0/24'
+)
+
+# host2 uses the same routes as host1.
+
+declare -n conf_vpn_base_routes_host2='conf_vpn_base_routes_host1'
+
+# host3 uses a subset of host1.
+
+conf_vpn_base_routes_host3=(
+	'20.10.0.0/16'
+)
+
+declare -n conf_vpn_base_routes
+
+conf_vpn_base_routes="conf_vpn_base_routes_${HOSTNAME}"
+
+vpn_names=("${vpn_names[@]:-${conf_vpn_names[@]}}")
+vpn_base_routes=("${vpn_base_routes[@]:-${conf_vpn_base_routes[@]}}")
+
+set_vpn_variables() {
+	local vpn_type="${1}"
+
+	# vpn_url: The VPN server URL.
+	# vpn_proto: The OpenConnect protocol argument.
+	# vpn_routes: The networks to route through the VPN.
+
+	case "${vpn_type}" in
+	1)
+		vpn_url='https://vpn.AAA.com'
+		vpn_proto='--protocol=nc' # Juniper Network Connect.
+		vpn_routes=(
+			"${vpn_base_routes[@]}"
+			'50.60.70.0/24'
+		)
+		;;
+	2)
+		vpn_url='https://vpn.BBB.com/best'
+		vpn_proto='--protocol=nc' # Juniper Network Connect.
+		vpn_routes=(
+			"${vpn_base_routes[@]}"
+		)
+		;;
+	3)
+		vpn_url='https://vpn.CCC.com/slow'
+		vpn_proto='--protocol=nc' # Juniper Network Connect.
+		vpn_routes=(
+			"${vpn_base_routes[@]}"
+		)
+		;;
+	*)
+		echo "${FUNCNAME[0]}: ERROR: Bad VPN type: '${vpn_type}'" >&2
+		usage
+		exit 1
+		;;
+	esac
+}
