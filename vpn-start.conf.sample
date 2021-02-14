@@ -2,14 +2,17 @@
 #
 
 # vpn_cert: The VPN SSL client certificate.
+#
 
 vpn_cert="${HOME}/vpn-cert.p12"
 
 # vpn_type: The default VPN server.
+#
 
 vpn_type="${vpn_type:-2}"
 
 # conf_vpn_names: Friendly names for the known VPN servers.
+#
 
 conf_vpn_names=(
 	'1: AAA'
@@ -17,7 +20,8 @@ conf_vpn_names=(
 	'3: CCC'
 )
 
-# conf_vpn_base_routes_host1: The networks to route through the VPN for 'host1'.
+# conf_vpn_base_routes_<hostname>: The networks to route through the VPN for known hosts.
+#
 
 conf_vpn_base_routes_host1=(
 	'10.0.0.0/8'
@@ -25,9 +29,13 @@ conf_vpn_base_routes_host1=(
 	'30.30.30.0/24'
 )
 
-# conf_vpn_base_routes_host2: The networks to route through the VPN for 'host2'.
+# host2 uses the same routes as host1.
 
-conf_vpn_base_routes_host2=(
+declare -n conf_vpn_base_routes_host2='conf_vpn_base_routes_host1'
+
+# host3 uses a subset of host1.
+
+conf_vpn_base_routes_host3=(
 	'20.10.0.0/16'
 )
 
