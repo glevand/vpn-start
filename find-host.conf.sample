@@ -1,0 +1,7 @@
+# Sample find-host.sh configuration file.
+# Home: https://github.com/glevand/vpn-start
+#
+
+host="${host:-all}"
+subnet="${subnet:-111.222.333.0/24}"
+user="${user:-guest}"

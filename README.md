@@ -24,6 +24,25 @@ Info:
   Project Home: https://github.com/glevand/vpn-start
 ```
 
+### find-host.sh - Search for hosts on a subnet.
+
+```
+find-host.sh - Search for hosts on a subnet.
+Usage: find-host.sh [flags]
+Option flags:
+  -t --host     - Host to search for. Can be {all, any}.  Default: 'all'.
+  -s --subnet   - Subnet to search.  Default: ''.
+  -u --user     - User. Default: ''.
+  -c --config   - Configuration file. Default: '/home/find-host.conf'.
+  -h --help     - Show this help and exit.
+  -v --verbose  - Verbose execution. Default: ''.
+  -g --debug    - Extra verbose execution. Default: ''.
+  -d --dry-run  - Dry run, don't do logins.
+Info:
+  find-host.sh - Version 0.0
+  Project Home: https://github.com/glevand/vpn-start
+```
+
 ## Licence & Usage
 
 All files in the [vpn-start project](https://github.com/glevand/vpn-start), unless otherwise noted, are covered by an [MIT Plus License](https://github.com/glevand/vpn-start/blob/master/mit-plus-license.txt).  The text of the license describes what usage is allowed.
