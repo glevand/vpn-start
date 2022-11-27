@@ -1,24 +1,24 @@
-# vpn-start
+# The vpn-start Project
 
-Startup wrapper for the OpenConnect VPN client.
+Utility scripts for Virtual Private Network users.
 
-### vpn-start.sh Usage
+### vpn-start.sh - Startup wrapper for the OpenConnect VPN client.
 
 ```
 vpn-start.sh - Start VPN.
 Usage: vpn-start.sh [flags]
 Option flags:
-  -t --type     - VPN type. Default: '2: BBB'.
+  -t --type     - VPN type. Default: '2: Gdańsk'.
   -n --no-split - Don't use split route.
-  -c --config   - Configuration file. Default: 'vpn-start.conf.sample'.
+  -c --config   - Configuration file. Default: '/home/vpn-start.conf.sample'.
   -h --help     - Show this help and exit.
   -v --verbose  - Verbose execution.
   -g --debug    - Extra verbose execution.
   -d --dry-run  - Dry run, don't start VPN client.
 VPN Types:
-  1: AAA
-  2: BBB (default)
-  3: CCC
+  1: London
+  2: Gdańsk (default)
+  3: Kalamata
 Info:
   vpn-start.sh - Version 0.0
   Project Home: https://github.com/glevand/vpn-start
@@ -45,4 +45,4 @@ Info:
 
 ## Licence & Usage
 
-All files in the [vpn-start project](https://github.com/glevand/vpn-start), unless otherwise noted, are covered by an [MIT Plus License](https://github.com/glevand/vpn-start/blob/master/mit-plus-license.txt).  The text of the license describes what usage is allowed.
+All files in the [The vpn-start Project](https://github.com/glevand/vpn-start), unless otherwise noted, are covered by an [MIT Plus License](https://github.com/glevand/vpn-start/blob/master/mit-plus-license.txt).  The text of the license describes what usage is allowed.
