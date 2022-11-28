@@ -43,6 +43,19 @@ Info:
   Project Home: https://github.com/glevand/vpn-start
 ```
 
+## Build
+
+To build use commands like these:
+
+```
+git clone https://github.com/glevand/vpn-start
+cd vpn-start
+./bootstrap
+./configure
+make
+make install
+```
+
 ## Licence & Usage
 
 All files in the [The vpn-start Project](https://github.com/glevand/vpn-start), unless otherwise noted, are covered by an [MIT Plus License](https://github.com/glevand/vpn-start/blob/master/mit-plus-license.txt).  The text of the license describes what usage is allowed.
