@@ -167,8 +167,7 @@ set -eE
 set -o pipefail
 set -o nounset
 
-vpn_type_default='2'
-vpn_type="${vpn_type_default}"
+vpn_type=''
 use_split_route='1'
 config_file_default="${HOME}/vpn-start.conf"
 config_file="${config_file_default}"
