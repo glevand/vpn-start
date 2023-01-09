@@ -41,13 +41,14 @@ EXTRA_DIST = bootstrap configure.ac COPYING m4 mit-plus-license.txt README.md \
 	version.sh $(addsuffix .in, $(composed_bin_scripts)) $(lib_scripts) \
 	$(nobase_bin_SCRIPTS) $(config_files) $(test_files)
 
-CLEANFILES = $(bin_SCRIPTS)
+CLEANFILES = $(composed_bin_scripts)
 
-MAINTAINERCLEANFILES = aclocal.m4 compile config.h* configure configure~ \
- depcomp install-sh Makefile.in missing $(PACKAGE)-*.gz
+MAINTAINERCLEANFILES = aclocal.m4 compile config.h* config.log config.status \
+configure configure~ depcomp find-host.sh install-sh Makefile Makefile.in \
+missing stamp-h1 vpn-start.sh $(PACKAGE)-*.gz
 
 maintainer-clean-local:
-	rm -rf m4 .deps
+	rm -rf m4 .deps autom4te.cache install
 
 .PHONY: help
 
