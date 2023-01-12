@@ -2,7 +2,7 @@
 # Home: https://github.com/glevand/vpn-start
 #
 
-# vpn_cert: The VPN SSL client certificate.
+# vpn_cert: An optional VPN SSL client certificate.
 #
 
 vpn_cert="${HOME}/vpn-cert.p12"
@@ -16,9 +16,9 @@ vpn_type="${vpn_type:-2}"
 #
 
 conf_vpn_names=(
-	'1: AAA'
-	'2: BBB (default)'
-	'3: CCC'
+	'1: London'
+	'2: Gdańsk (default)'
+	'3: Kalamata'
 )
 
 # conf_vpn_base_routes_<hostname>: The networks to route through the VPN for known hosts.
@@ -52,27 +52,31 @@ set_vpn_variables() {
 
 	# vpn_url: The VPN server URL.
 	# vpn_proto: The OpenConnect protocol argument.
+	# vpn_user: An optional user name to use for VPN login.
 	# vpn_routes: The networks to route through the VPN.
 
 	case "${vpn_type}" in
 	1)
-		vpn_url='https://vpn.AAA.com'
+		vpn_url='https://vpn.AAA.uk'
 		vpn_proto='--protocol=nc' # Juniper Network Connect.
+		vpn_user='guest'
 		vpn_routes=(
 			"${vpn_base_routes[@]}"
 			'50.60.70.0/24'
 		)
 		;;
 	2)
-		vpn_url='https://vpn.BBB.com/best'
+		vpn_url='https://vpn.BBB.pl'
 		vpn_proto='--protocol=nc' # Juniper Network Connect.
+		vpn_user='guest'
 		vpn_routes=(
 			"${vpn_base_routes[@]}"
 		)
 		;;
 	3)
-		vpn_url='https://vpn.CCC.com/slow'
+		vpn_url='https://vpn.CCC.gr'
 		vpn_proto='--protocol=nc' # Juniper Network Connect.
+		vpn_user='guest'
 		vpn_routes=(
 			"${vpn_base_routes[@]}"
 		)
