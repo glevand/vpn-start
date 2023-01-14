@@ -2,11 +2,6 @@
 # Home: https://github.com/glevand/vpn-start
 #
 
-# vpn_cert: An optional VPN SSL client certificate.
-#
-
-vpn_cert="${HOME}/vpn-cert.p12"
-
 # vpn_type: The default VPN server.
 #
 
@@ -53,13 +48,13 @@ set_vpn_variables() {
 	# vpn_url: The VPN server URL.
 	# vpn_proto: The OpenConnect protocol argument.
 	# vpn_user: An optional user name to use for VPN login.
+	# vpn_cert: An optional VPN SSL client certificate.
 	# vpn_routes: The networks to route through the VPN.
 
 	case "${vpn_type}" in
 	1)
 		vpn_url='https://vpn.AAA.uk'
 		vpn_proto='--protocol=nc' # Juniper Network Connect.
-		vpn_user='guest'
 		vpn_routes=(
 			"${vpn_base_routes[@]}"
 			'50.60.70.0/24'
@@ -68,7 +63,7 @@ set_vpn_variables() {
 	2)
 		vpn_url='https://vpn.BBB.pl'
 		vpn_proto='--protocol=nc' # Juniper Network Connect.
-		vpn_user='guest'
+		vpn_cert="${HOME}/vpn-cert.p12"
 		vpn_routes=(
 			"${vpn_base_routes[@]}"
 		)
