@@ -13,10 +13,11 @@ usage() {
 		echo "  -s --subnet   - Subnet to search.  Default: '${subnet}'."
 		echo "  -u --user     - User. Default: '${user}'."
 		echo "  -c --config   - Configuration file. Default: '${config_file}'."
+		echo "  -m --show-mac - Show MAC Addresses. Default: '${show_mac}'."
 		echo "  -h --help     - Show this help and exit."
 		echo "  -v --verbose  - Verbose execution. Default: '${verbose}'."
 		echo "  -g --debug    - Extra verbose execution. Default: '${debug}'."
-		echo "  -d --dry-run  - Dry run, don't do logins."
+		echo "  -d --dry-run  - Dry run, don't do logins. Default: '${dry_run}'."
 		echo "Info:"
 		echo "  ${script_name} - Version: @PACKAGE_VERSION@"
 		echo "  Project Home: @PACKAGE_URL@"
@@ -25,8 +26,8 @@ usage() {
 }
 
 process_opts() {
-	local short_opts="t:s:u:c:hvgd"
-	local long_opts="host:,subnet:,user:,config:,help,verbose,debug,dry-run"
+	local short_opts="t:s:u:c:mhvgd"
+	local long_opts="host:,subnet:,user:,config:,show-mac,help,verbose,debug,dry-run"
 
 	local opts
 	opts=$(getopt --options ${short_opts} --long ${long_opts} -n "${script_name}" -- "$@")
@@ -51,6 +52,10 @@ process_opts() {
 		-c | --config)
 			config_file="${2}"
 			shift 2
+			;;
+		-m | --show-mac)
+			show_mac=1
+			shift
 			;;
 		-h | --help)
 			usage=1
@@ -110,6 +115,7 @@ subnet=''
 user=''
 config_file_default="${HOME}/find-host.conf"
 config_file="${config_file_default}"
+show_mac=''
 usage=''
 verbose=''
 debug=''
@@ -182,31 +188,73 @@ if (( ${line_count} == 0 )); then
 	exit 1
 fi
 
-# 'Nmap scan report for 11.22.33.44'
-# 'Nmap scan report for host.domain.net (11.22.33.44)'
+if [[ ${verbose} ]]; then
+	echo '=======| nmap_array dump |======='
+	for (( id = 1; id <= ${line_count}; id++ )); do
+		line="${nmap_array[$(( id - 1 ))]}"
+
+		echo "${id}: '${line}'"
+	done
+	echo '================================='
+fi
+
+# 'Nmap scan report for (11.22.33.44)'
+# 'Host is up (0.00054s latency).'
+# 'MAC Address: 1a:2b:3c:4d:5e:6f (Unknown)'
+
+# arp -a -n 11.22.33.44
+# ? (11.22.33.44) at 1a:2b:3c:4d:5e:6f [ether] on lan1
 
 regex_ip='([[:digit:]]{1,3}\.){3}[[:digit:]]{1,3}'
-regex_line="Nmap scan report for.* \(?(${regex_ip})\)?"
+regex_ip_line="Nmap scan report for.* \(?(${regex_ip})\)?"
+
+regex_mac='([[:alnum:]]{2}:){5}[[:alnum:]]{2}'
+regex_mac_line="MAC Address: \(?(${regex_mac})\)?"
 
 declare -a ip_array=()
+declare -a mac_array=()
 
-for (( id = 1; id <= ${line_count}; id++ )); do
-	line="${nmap_array[$(( id - 1 ))]}"
+for (( id = 1; id < ${line_count} - 1; id++ )); do
+	ip_line="${nmap_array[$(( id - 1 ))]}"
+	ip_addr='No IP match'
+	mac_line="${nmap_array[$(( id + 1 ))]}"
+	mac_addr='No MAC match'
 
 	if [[ ${verbose} ]]; then
 		echo '-----------------------------'
-		echo "${id}: '${line}'"
+		echo "${id} ip_line:  '${ip_line}'"
+		echo "${id} mac_line: '${mac_line}'"
 	fi
 
-	if [[ "${line}" =~ ${regex_line} ]]; then
-		if [[ ${verbose} ]]; then
-			echo "IP = '${BASH_REMATCH[1]}'"
-		fi
-		ip_array+=("${BASH_REMATCH[1]}")
+	if [[ "${ip_line}" =~ ${regex_ip_line} ]]; then
+		ip_addr="${BASH_REMATCH[1]}"
+		ip_array+=("${ip_addr}")
 	else
 		if [[ ${verbose} ]]; then
-			echo "no match: '${line}'"
+			echo "No IP match in line: '${ip_line}'"
 		fi
+		continue
+	fi
+
+	if [[ "${mac_line}" =~ ${regex_mac_line} ]]; then
+		mac_addr="${BASH_REMATCH[1]}"
+#	if [[ "${mac_line}" =~ ${regex_mac} ]]; then
+#		mac_addr="${BASH_REMATCH[0]}"
+	else
+		arp_data=$(arp -a -n ${ip_addr})
+
+		if [[ "${arp_data}" =~ ${regex_mac} ]]; then
+			mac_addr="${BASH_REMATCH[0]}"
+		else
+			if [[ ${verbose} ]]; then
+				echo "No MAC match in arp data: '${arp_data}'"
+			fi
+		fi
+	fi
+	mac_array+=("${mac_addr}")
+
+	if [[ ${show_mac} || ${verbose} ]]; then
+		echo "${id}: IP = '${ip_addr}', MAC = '${mac_addr}'"
 	fi
 done
 
@@ -221,6 +269,7 @@ if (( ${ip_count} == 0 )); then
 	exit 1
 fi
 
+echo '-----------------------------'
 if [[ ${dry_run} ]]; then
 	echo "Trying ${ip_count} machines (DRY RUN)."
 else
